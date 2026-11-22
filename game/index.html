@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LANTERNTHIEF — The Festival of Lights</title>
+<link rel="icon" href="data:,">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #07081a; height: 100%; }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    color: #f2e3c8;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; overflow: hidden;
+  }
+  #wrap { position: relative; width: 1280px; max-width: 100vw; }
+  canvas {
+    display: block; width: 100%; height: auto;
+    background: #12142e;
+    border: 2px solid #3a2a1e;
+    box-shadow: 0 0 60px rgba(255, 170, 60, 0.15), 0 0 0 6px #0d0e24;
+  }
+  #hud {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; gap: 18px;
+    padding: 10px 16px;
+    background: linear-gradient(rgba(7, 8, 26, 0.88), rgba(7, 8, 26, 0));
+    font-size: 15px; letter-spacing: 0.5px;
+    pointer-events: none; z-index: 5;
+  }
+  #hud .title { color: #ffd76a; font-weight: bold; font-size: 17px; }
+  #hud .stat { color: #f2e3c8; white-space: nowrap; }
+  #hud .stat b { color: #7ee787; }
+  #eye { display: flex; align-items: center; gap: 6px; }
+  #eye-track {
+    width: 120px; height: 10px; background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,215,106,0.5); border-radius: 5px; overflow: hidden;
+  }
+  #eye-fill { height: 100%; width: 0%; background: #ffd76a; transition: width 0.12s; }
+  #eye-label { font-size: 12px; color: #ffd76a; min-width: 74px; }
+  #hud-alert { font-weight: bold; min-width: 110px; }
+  #hud-timer { margin-left: auto; color: #9fb3ff; font-variant-numeric: tabular-nums; }
+  #hud-hint {
+    position: absolute; bottom: 8px; left: 0; right: 0; text-align: center;
+    font-size: 13px; color: rgba(242, 227, 200, 0.75);
+    text-shadow: 0 1px 3px #000; pointer-events: none; z-index: 5;
+  }
+  .screen {
+    position: absolute; inset: 0; z-index: 10;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; background: rgba(7, 8, 26, 0.82);
+    padding: 40px; gap: 14px;
+  }
+  .screen.hidden, .hidden { display: none !important; }
+  .screen h1 {
+    font-size: 56px; letter-spacing: 6px; color: #ffd76a;
+    text-shadow: 0 0 30px rgba(255, 170, 60, 0.6), 0 2px 0 #7d1a10;
+  }
+  .screen h2 { font-size: 30px; color: #ffd76a; letter-spacing: 3px; }
+  .screen .sub { font-size: 19px; color: #f2e3c8; font-style: italic; }
+  .screen p { font-size: 16px; line-height: 1.6; max-width: 640px; color: #d8cdb2; }
+  .screen .keys { font-size: 14px; color: #9fb3ff; line-height: 1.9; }
+  .screen .keys b { color: #ffd76a; }
+  .screen .big { font-size: 44px; color: #ffd76a; font-variant-numeric: tabular-nums; }
+  .press { margin-top: 10px; font-size: 15px; color: #7ee787; letter-spacing: 2px; animation: blink 1.4s infinite; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  .lantern-row { font-size: 30px; letter-spacing: 14px; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="1280" height="720"></canvas>
+
+  <div id="hud" class="hidden">
+    <span class="title">🏮 LANTERNTHIEF</span>
+    <span class="stat" id="hud-level">Level 1</span>
+    <span class="stat">Charms <b id="hud-charms">◆ 0/3</b></span>
+    <span class="stat">Coins <b id="hud-coins">◉ 3</b></span>
+    <span id="eye"><span>👁</span><span id="eye-track"><span id="eye-fill" style="display:block"></span></span><span id="eye-label">UNSEEN</span></span>
+    <span id="hud-alert">— CALM</span>
+    <span id="hud-timer">00:00</span>
+  </div>
+  <div id="hud-hint"></div>
+
+  <div class="screen" id="screen-title">
+    <div class="lantern-row">🏮 🏮 🏮</div>
+    <h1>LANTERNTHIEF</h1>
+    <div class="sub">The Festival of Lights</div>
+    <p>A night lantern festival. Vermilion guards walk the lanes, their golden
+    cones sweeping the light. Steal the three jade charms of each level and slip
+    out through the glowing shrine — unseen.</p>
+    <div class="keys">
+      <b>WASD / Arrows</b> move (running is loud) &nbsp;·&nbsp; <b>Shift</b> sneak quietly<br>
+      <b>F / Space</b> throw a coin to distract a guard &nbsp;·&nbsp; <b>E</b> crouch / hide in bushes<br>
+      <b>M</b> mute &nbsp;·&nbsp; <b>R</b> retry after being caught
+    </div>
+    <div class="press">PRESS ENTER OR CLICK TO BEGIN</div>
+  </div>
+
+  <div class="screen hidden" id="screen-intro">
+    <h2 id="intro-name">Level 1</h2>
+    <p id="intro-text"></p>
+    <div class="press">PRESS ENTER TO SNEAK IN</div>
+  </div>
+
+  <div class="screen hidden" id="screen-win">
+    <div class="lantern-row">✦ 🏮 ✦</div>
+    <h2>THE FESTIVAL NEVER SAW YOU</h2>
+    <div class="big" id="win-time">00:00</div>
+    <p id="win-sub"></p>
+    <div class="press">PRESS R TO STEAL AGAIN</div>
+  </div>
+
+  <div class="screen hidden" id="screen-caught">
+    <h2>CAUGHT!</h2>
+    <p id="caught-text"></p>
+    <div class="press">PRESS R TO TRY AGAIN</div>
+  </div>
+</div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
