@@ -60,6 +60,7 @@ export const audio = {
   },
 
   coin() { this._tone(1900, 0.09, 'triangle', 0.14); this._tone(2500, 0.12, 'triangle', 0.1, null, 0.07); },
+  douse() { this._noise(0.35, 0.09, 400); this._tone(520, 0.25, 'sine', 0.08, 180); },
   coinLand() { this._tone(1250, 0.06, 'square', 0.05); this._tone(950, 0.08, 'square', 0.04, null, 0.05); },
   pickup() { this._tone(660, 0.1, 'sine', 0.12); this._tone(990, 0.14, 'sine', 0.12, null, 0.08); this._tone(1320, 0.18, 'sine', 0.1, null, 0.16); },
   suspicious() { this._tone(392, 0.16, 'triangle', 0.12, 466); },

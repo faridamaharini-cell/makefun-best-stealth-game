@@ -67,7 +67,7 @@ export const LEVELS = [
   },
   {
     name: 'Level 3 — Emperor\'s Plaza',
-    intro: 'Seven guards guard the plaza. Every lantern is lit. Be a shadow.',
+    intro: 'Ten guards guard the plaza — including two crimson ELITE guards with longer sight and faster chases. Every lantern is lit. Be a shadow.',
     player: { x: 16, y: 16 },
     exit: { x: 16, y: 1 },
     charms: [{ x: 2, y: 2 }, { x: 29, y: 2 }, { x: 2, y: 16 }],
@@ -98,6 +98,10 @@ export const LEVELS = [
       { path: [[16, 16], [24, 16], [24, 13]], speed: 82 },
       { path: [[10, 10], [10, 15], [21, 15], [21, 10]], speed: 70 },
       { path: [[16, 5], [16, 7], [13, 7], [19, 7]], speed: 78 },
+      { path: [[5, 7], [5, 14], [10, 14], [10, 7]], speed: 76 },
+      // ELITE guards: crimson, longer vision, faster chase.
+      { path: [[14, 4], [18, 4], [18, 12], [14, 12]], speed: 88, elite: true },
+      { path: [[8, 10], [24, 10], [24, 15], [8, 15]], speed: 84, elite: true },
     ],
   },
 ];
@@ -157,16 +161,27 @@ export function buildWorld(def) {
       }
       return true;
     },
-    lanterns: def.lanterns.map((l) => ({ x: px(l), y: py(l), r: 120 })),
+    lanterns: def.lanterns.map((l) => ({ x: px(l), y: py(l), r: 120, doused: false })),
     charms: def.charms.map((c) => ({ x: px(c), y: py(c), taken: false, bob: Math.random() * 6 })),
     exit: { x: px(def.exit), y: py(def.exit), open: false },
     playerStart: { x: px(def.player), y: py(def.player) },
     guardDefs: def.guards.map((g) => ({
       path: g.path.map(([tx, ty]) => ({ x: (tx + 0.5) * TILE, y: (ty + 0.5) * TILE })),
       speed: g.speed,
+      elite: !!g.elite,
     })),
     inLight(x, y) {
       for (const l of this.lanterns) {
+        if (l.doused) continue; // a snuffed lantern paints no light
+        const dx = x - l.x, dy = y - l.y;
+        if (dx * dx + dy * dy < l.r * l.r) return true;
+      }
+      return false;
+    },
+    // True when standing inside a doused lantern's radius: a dark safe zone.
+    inDousedZone(x, y) {
+      for (const l of this.lanterns) {
+        if (!l.doused) continue;
         const dx = x - l.x, dy = y - l.y;
         if (dx * dx + dy * dy < l.r * l.r) return true;
       }

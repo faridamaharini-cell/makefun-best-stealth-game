@@ -16,6 +16,7 @@ export class Player {
     this.hidden = false; // inside a bush
     this.coins = 3;
     this.charms = 0;
+    this.oil = 2; // lantern oil: Q snuffs a nearby lantern, 2 per level
     this.coin = null; // flying coin {x, y, sx, sy, tx, ty, t}
     this.stepAcc = 0;
   }
@@ -23,7 +24,7 @@ export class Player {
   reset(x, y) {
     this.x = x; this.y = y;
     this.dir = -Math.PI / 2;
-    this.coins = 3; this.charms = 0;
+    this.coins = 3; this.charms = 0; this.oil = 2;
     this.coin = null; this.crouched = false; this.hidden = false;
   }
 
@@ -60,6 +61,22 @@ export class Player {
     // Running makes noise: guards nearby turn to look.
     if (this.running && this.moving) {
       events.push({ type: 'noise', x: this.x, y: this.y, radius: 130 });
+    }
+
+    // Douse: Q snuffs the nearest lit lantern within reach, making a dark
+    // safe zone where detection fills much slower. Costs 1 oil, 2 per level.
+    if (input.wasPressed('q') && this.oil > 0) {
+      let best = null, bestD = 80;
+      for (const l of world.lanterns) {
+        if (l.doused) continue;
+        const d = Math.hypot(l.x - this.x, l.y - this.y);
+        if (d < bestD) { bestD = d; best = l; }
+      }
+      if (best) {
+        best.doused = true;
+        this.oil--;
+        events.push('douse');
+      }
     }
 
     // Coin toss: F or Space throws toward the facing direction.

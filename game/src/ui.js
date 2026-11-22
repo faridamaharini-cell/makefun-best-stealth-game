@@ -4,7 +4,7 @@
 export function createUI() {
   const $ = (id) => document.getElementById(id);
   const el = {
-    hud: $('hud'), levelName: $('hud-level'), charms: $('hud-charms'), coins: $('hud-coins'),
+    hud: $('hud'), levelName: $('hud-level'), charms: $('hud-charms'), coins: $('hud-coins'), oil: $('hud-oil'),
     eyeFill: $('eye-fill'), eyeLabel: $('eye-label'), alert: $('hud-alert'), timer: $('hud-timer'),
     hint: $('hud-hint'),
     title: $('screen-title'), intro: $('screen-intro'), win: $('screen-win'), caught: $('screen-caught'),
@@ -45,6 +45,7 @@ export function createUI() {
       el.levelName.textContent = state.levelName;
       el.charms.textContent = `◆ ${player.charms}/3`;
       el.coins.textContent = `◉ ${player.coins}`;
+      el.oil.textContent = `🕯 ${player.oil}`;
       el.eyeFill.style.width = `${Math.round(detection * 100)}%`;
       el.eyeFill.style.background = detection > 0.7 ? '#ff4030' : detection > 0.32 ? '#ffb020' : '#ffd76a';
       el.eyeLabel.textContent = player.hidden ? 'HIDDEN' : detection > 0.7 ? 'SEEN!' : detection > 0.32 ? 'SUSPICIOUS' : 'UNSEEN';
@@ -58,7 +59,7 @@ export function createUI() {
       el.timer.textContent = `${mm}:${ss}`;
       el.hint.textContent = player.hidden
         ? 'Hidden in the bush — guards cannot see you'
-        : player.crouched ? 'Crouched — slow, hard to spot' : 'WASD move · Shift sneak · F coin · E crouch · M mute';
+        : player.crouched ? 'Crouched — slow, hard to spot' : 'WASD move · Shift sneak · F coin · Q douse lantern · E crouch · M mute';
     },
   };
 }

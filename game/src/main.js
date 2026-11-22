@@ -76,6 +76,7 @@ function handleEvents(events) {
       if (ev === 'step') audio.step(false);
       else if (ev === 'step-run') audio.step(true);
       else if (ev === 'coin-throw') audio.coin();
+      else if (ev === 'douse') audio.douse();
       else if (ev === 'suspicious') audio.suspicious();
       else if (ev === 'alert') audio.alert();
       else if (ev === 'caught') { caught(); return; }
@@ -147,12 +148,13 @@ function applyScene(scene) {
   const p = game.player;
   const w = game.world;
   if (scene === 'cover') {
-    // Thief crouched behind a crate, two guards sweeping with gold cones.
-    p.x = 6 * 40 + 20; p.y = 10 * 40 + 20; p.crouched = true;
-    game.guards[0].x = 5 * 40 + 20; game.guards[0].y = 8 * 40 + 20; game.guards[0].dir = Math.PI / 2;
-    game.guards[1].x = 21 * 40 + 20; game.guards[1].y = 6 * 40 + 20; game.guards[1].dir = Math.PI;
-    game.guards[2].x = 20 * 40 + 20; game.guards[2].y = 15 * 40 + 20; game.guards[2].dir = -Math.PI / 2;
-    p.charms = 1; w.charms[0].taken = true;
+    // V2 cover: thief crouched by a crate with all 3 charms, the shrine OPEN
+    // and its gold EXIT BEACON rising in-frame — level, cones, cover, exit.
+    p.x = 25 * 40 + 20; p.y = 13 * 40 + 20; p.crouched = true;
+    p.charms = 3; w.charms.forEach((c) => { c.taken = true; }); w.exit.open = true;
+    game.guards[0].x = 21 * 40 + 20; game.guards[0].y = 11 * 40 + 20; game.guards[0].dir = Math.PI / 4;
+    game.guards[1].x = 22 * 40 + 20; game.guards[1].y = 7 * 40 + 20; game.guards[1].dir = Math.PI / 2;
+    game.guards[2].x = 27 * 40 + 20; game.guards[2].y = 10 * 40 + 20; game.guards[2].dir = -Math.PI / 2;
   } else if (scene === 'alarm') {
     // A guard has spotted the thief and chases; the thief slips toward shadow.
     p.x = 12 * 40 + 20; p.y = 7 * 40 + 20; p.dir = Math.PI;
@@ -165,13 +167,22 @@ function applyScene(scene) {
     p.charms = 2; w.charms[0].taken = true; w.charms[1].taken = true;
     game.levelTime = 74;
   } else if (scene === 'level3') {
-    // Dense plaza: many cones, lantern-lit, thief hidden in a bush.
-    p.x = 9 * 40 + 20; p.y = 9 * 40 + 20; p.hidden = true;
+    // V2 plaza: 10 guards incl. 2 crimson ELITEs, one lantern DOUSED (dark
+    // zone + smoke) beside the thief hidden in a bush, beacon at the top.
+    p.x = 16 * 40 + 20; p.y = 11 * 40 + 20; p.hidden = true;
+    p.oil = 1; // one oil spent dousing the plaza lantern
+    w.lanterns[3].doused = true; // lantern at (16,9), right above the bush
     game.guards.forEach((g, i) => {
-      g.dir = [0.4, 2.2, -0.9, 1.6, 3.0, -2.4, 0.9][i % 7];
+      g.dir = [0.4, 2.2, -0.9, 1.6, 3.0, -2.4, 0.9, 1.2, -1.4, 2.6][i % 10];
       g.suspicion = i === 3 ? 0.45 : 0.05;
       if (i === 3) g.state = 'suspicious';
     });
+    // An ELITE guard (index 8) sweeps the plaza toward the thief.
+    game.guards[8].x = 20 * 40 + 20; game.guards[8].y = 8 * 40 + 20;
+    game.guards[8].dir = Math.PI * 0.75; game.guards[8].suspicion = 0.55;
+    game.guards[8].state = 'suspicious';
+    game.guards[9].x = 10 * 40 + 20; game.guards[9].y = 13 * 40 + 20;
+    game.guards[9].dir = -0.6;
     p.charms = 1; w.charms[0].taken = true;
     game.levelTime = 132;
   }

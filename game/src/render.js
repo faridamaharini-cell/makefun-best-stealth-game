@@ -9,11 +9,13 @@ const CONE_FILL = {
   gold: 'rgba(255, 205, 90, 0.20)',
   orange: 'rgba(255, 140, 40, 0.30)',
   red: 'rgba(255, 60, 50, 0.38)',
+  crimson: 'rgba(255, 45, 90, 0.22)',
 };
 const CONE_EDGE = {
   gold: 'rgba(255, 205, 90, 0.55)',
   orange: 'rgba(255, 140, 40, 0.7)',
   red: 'rgba(255, 60, 50, 0.85)',
+  crimson: 'rgba(255, 45, 90, 0.7)',
 };
 
 export function createRenderer(canvas) {
@@ -32,7 +34,7 @@ export function createRenderer(canvas) {
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(g.x, g.y);
-    ctx.arc(g.x, g.y, CONE_RANGE, g.dir - CONE_HALF_ANGLE, g.dir + CONE_HALF_ANGLE);
+    ctx.arc(g.x, g.y, g.coneRange || CONE_RANGE, g.dir - (g.coneHalfAngle || CONE_HALF_ANGLE), g.dir + (g.coneHalfAngle || CONE_HALF_ANGLE));
     ctx.closePath();
     ctx.fillStyle = CONE_FILL[color];
     ctx.fill();
@@ -52,6 +54,41 @@ export function createRenderer(canvas) {
   }
 
   function drawLantern(l, t) {
+    if (l.doused) {
+      // Snuffed lantern: no light pool, dark cold body, a wisp of smoke.
+      const g = ctx.createRadialGradient(l.x, l.y, 4, l.x, l.y, l.r);
+      g.addColorStop(0, 'rgba(40, 50, 90, 0.30)');
+      g.addColorStop(1, 'rgba(40, 50, 90, 0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(l.x, l.y, l.r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#2a1a2e';
+      ctx.fillRect(l.x - 1.5, l.y - 2, 3, 22);
+      ctx.fillStyle = '#3a2a30';
+      ctx.beginPath(); ctx.ellipse(l.x, l.y - 6, 11, 13, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#1c1418';
+      ctx.beginPath(); ctx.ellipse(l.x, l.y - 6, 6, 9, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#5a4a3a';
+      ctx.fillRect(l.x - 7, l.y - 20, 14, 3);
+      ctx.fillRect(l.x - 7, l.y + 5, 14, 3);
+      // Rising smoke wisp.
+      const sway = Math.sin(t * 1.6 + l.x) * 6;
+      ctx.strokeStyle = 'rgba(210, 210, 220, 0.65)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(l.x, l.y - 20);
+      ctx.quadraticCurveTo(l.x + sway, l.y - 38, l.x - sway * 0.5, l.y - 54);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(210, 210, 220, 0.65)';
+      ctx.beginPath(); ctx.arc(l.x - sway * 0.5, l.y - 56, 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(210, 210, 220, 0.4)';
+      ctx.beginPath(); ctx.arc(l.x + sway * 0.6, l.y - 44, 3, 0, Math.PI * 2); ctx.fill();
+      // "DOUSED" tag so the dark zone reads clearly.
+      ctx.fillStyle = '#9fb3ff';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('DOUSED', l.x, l.y + 36);
+      return;
+    }
     const flick = 0.85 + Math.sin(t * 5 + l.x) * 0.08 + Math.sin(t * 11 + l.y) * 0.05;
     const grad = ctx.createRadialGradient(l.x, l.y, 4, l.x, l.y, l.r);
     grad.addColorStop(0, `rgba(255, 190, 90, ${0.34 * flick})`);
@@ -73,22 +110,31 @@ export function createRenderer(canvas) {
 
   function drawGuard(g, t) {
     // Vermilion robe, dark belt, pale face, helmet crest.
+    // ELITE guards wear crimson with a gold crest and a red plume.
+    const robe = g.elite ? '#a31226' : '#c22e1e';
+    const belt = g.elite ? '#4a0510' : '#7d1a10';
     ctx.save();
     ctx.translate(g.x, g.y);
     ctx.rotate(g.dir);
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.beginPath(); ctx.ellipse(0, 4, 15, 10, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#c22e1e';
+    ctx.fillStyle = robe;
     ctx.beginPath(); ctx.ellipse(0, 0, 14, 11, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#7d1a10';
+    ctx.fillStyle = belt;
     ctx.fillRect(-4, -8, 8, 16);
     ctx.fillStyle = '#f2d8a0';
     ctx.beginPath(); ctx.arc(15, 0, 6.5, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#1c1c28';
     ctx.beginPath(); ctx.arc(16, 0, 5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#ffd76a';
+    ctx.fillStyle = g.elite ? '#ff2d5a' : '#ffd76a';
     ctx.beginPath(); ctx.moveTo(10, -7); ctx.lineTo(16, 0); ctx.lineTo(10, 7); ctx.closePath(); ctx.fill();
     ctx.restore();
+    if (g.elite) {
+      ctx.fillStyle = '#ff2d5a';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('ELITE', g.x, g.y - 34);
+    }
     // Suspicion arc above the guard.
     if (g.suspicion > 0.05) {
       ctx.save();
@@ -159,9 +205,21 @@ export function createRenderer(canvas) {
     ctx.restore();
   }
 
-  function drawExit(exit, t) {
+  function drawExit(exit, t, player) {
     const open = exit.open;
     const pulse = 0.6 + Math.sin(t * 3) * 0.25;
+    // EXIT BEACON: a tall pillar of gold light rising from the shrine to the
+    // top of the screen, visible across the whole level.
+    const beamW = open ? 44 : 30;
+    const beamGrad = ctx.createLinearGradient(exit.x - beamW, 0, exit.x + beamW, 0);
+    const beamA = open ? 0.34 * pulse + 0.12 : 0.16;
+    beamGrad.addColorStop(0, 'rgba(255, 215, 106, 0)');
+    beamGrad.addColorStop(0.5, `rgba(255, 215, 106, ${beamA})`);
+    beamGrad.addColorStop(1, 'rgba(255, 215, 106, 0)');
+    ctx.fillStyle = beamGrad;
+    ctx.fillRect(exit.x - beamW, 0, beamW * 2, exit.y);
+    ctx.fillStyle = `rgba(255, 230, 150, ${open ? 0.55 * pulse : 0.25})`;
+    ctx.fillRect(exit.x - 3, 0, 6, exit.y);
     const glow = ctx.createRadialGradient(exit.x, exit.y, 4, exit.x, exit.y, open ? 90 : 55);
     glow.addColorStop(0, open ? `rgba(255, 215, 106, ${0.7 * pulse})` : 'rgba(255, 215, 106, 0.25)');
     glow.addColorStop(1, 'rgba(255, 215, 106, 0)');
@@ -179,10 +237,32 @@ export function createRenderer(canvas) {
     ctx.beginPath(); ctx.arc(0, 2, 7, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
     if (open) {
+      // When the EXIT label is up, move this line below the shrine so the
+      // two labels never overlap.
+      const labelUp = player && (Math.hypot(player.x - exit.x, player.y - exit.y) < 320);
       ctx.fillStyle = '#ffe9a8';
       ctx.font = 'bold 12px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('SHRINE OPEN', exit.x, exit.y - 32);
+      ctx.fillText('SHRINE OPEN', exit.x, labelUp ? exit.y + 40 : exit.y - 32);
+    }
+    // "EXIT" label when the thief is close enough to read it (or it is open).
+    const nearExit = player && Math.hypot(player.x - exit.x, player.y - exit.y) < 320;
+    if (nearExit || open) {
+      // Clamp so the label never clips off the top (level 3 exit sits high).
+      const ly = Math.max(22, exit.y - 48);
+      ctx.save();
+      ctx.font = 'bold 20px sans-serif';
+      ctx.textAlign = 'center';
+      const tw = ctx.measureText('⬆ EXIT').width + 18;
+      ctx.fillStyle = 'rgba(7, 8, 26, 0.85)';
+      ctx.strokeStyle = '#ffd76a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(exit.x - tw / 2, ly - 17, tw, 24, 5);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#ffd76a';
+      ctx.fillText('⬆ EXIT', exit.x, ly);
+      ctx.restore();
     }
   }
 
@@ -262,7 +342,7 @@ export function createRenderer(canvas) {
     for (const g of guards) drawCone(g, t);
     for (const l of world.lanterns) drawLantern(l, t);
     for (const c of world.charms) drawCharm(c, t);
-    drawExit(world.exit, t);
+    drawExit(world.exit, t, player);
     for (const g of guards) drawGuard(g, t);
     drawPlayer(player, t);
     // Thrown coin in flight.

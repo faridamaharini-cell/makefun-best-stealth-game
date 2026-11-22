@@ -14,13 +14,18 @@ slip out through the glowing shrine — unseen.
 - **WASD / Arrow keys** — move. Running is fast but loud: guards hear it.
 - **Shift (hold)** — sneak slowly and quietly.
 - **F or Space** — throw a coin (3 per level) to lure a guard to that spot.
+- **Q** — douse a nearby lantern (2 oil per level): the snuffed lantern goes
+  dark, a safe shadow where the detection eye fills much slower.
 - **E** — crouch; crouching in a bush hides you completely.
 - **M** — mute / unmute. **R** — retry after being caught.
 
 Guards patrol, grow suspicious when they glimpse you or hear noise, chase when
 they are sure, then search your last known position before returning to patrol.
 Their detection eye fills fast while you stand in lantern light inside a cone,
-and drains in shadow or behind cover. Three levels, 3 / 5 / 7 guards.
+and drains in shadow or behind cover. The shrine exit is marked by a tall gold
+light beacon with an EXIT sign when you are close. Three levels, 3 / 5 / 10
+guards — level 3 adds two crimson ELITE guards with longer vision cones and
+faster chases.
 
 ## Play it
 

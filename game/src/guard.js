@@ -7,12 +7,17 @@
 import { TILE } from './levels.js';
 
 export const CONE_RANGE = 230;
+export const ELITE_CONE_RANGE = 310;
 export const CONE_HALF_ANGLE = 0.61; // ~35 degrees each side
+export const ELITE_CONE_HALF_ANGLE = 0.68;
 
 export class Guard {
   constructor(def) {
     this.path = def.path;
     this.speed = def.speed;
+    this.elite = !!def.elite;
+    this.coneRange = this.elite ? ELITE_CONE_RANGE : CONE_RANGE;
+    this.coneHalfAngle = this.elite ? ELITE_CONE_HALF_ANGLE : CONE_HALF_ANGLE;
     this.x = def.path[0].x;
     this.y = def.path[0].y;
     this.wp = 1 % def.path.length;
@@ -31,19 +36,19 @@ export class Guard {
   get coneColor() {
     if (this.state === 'chase') return 'red';
     if (this.state === 'suspicious' || this.state === 'search') return 'orange';
-    return 'gold';
+    return this.elite ? 'crimson' : 'gold';
   }
 
   // True when the player is inside the cone and visible (line of sight, not hidden).
   sees(world, player) {
     const dx = player.x - this.x, dy = player.y - this.y;
     const dist = Math.hypot(dx, dy);
-    if (dist > CONE_RANGE) return false;
+    if (dist > this.coneRange) return false;
     if (player.hidden && dist > 55) return false;
     let ang = Math.atan2(dy, dx) - this.dir;
     while (ang > Math.PI) ang -= Math.PI * 2;
     while (ang < -Math.PI) ang += Math.PI * 2;
-    if (Math.abs(ang) > CONE_HALF_ANGLE) return false;
+    if (Math.abs(ang) > this.coneHalfAngle) return false;
     return world.hasLineOfSight(this.x, this.y, player.x, player.y);
   }
 
@@ -75,8 +80,10 @@ export class Guard {
 
     if (seen) {
       this.lastKnown = { x: player.x, y: player.y };
-      // In lantern light the eye fills fast; in shadow it only creeps.
-      const rate = inLight ? 1.25 : (player.crouched ? 0.10 : 0.22);
+      // In lantern light the eye fills fast; in shadow — or inside a doused
+      // lantern's dark zone — it only creeps.
+      const doused = world.inDousedZone ? world.inDousedZone(player.x, player.y) : false;
+      const rate = (inLight && !doused) ? 1.25 : (player.crouched || doused ? 0.10 : 0.22);
       this.suspicion = Math.min(1, this.suspicion + rate * dt);
       if (this.state === 'patrol' || this.state === 'return') this.state = 'suspicious';
     } else {
@@ -126,7 +133,8 @@ export class Guard {
       case 'chase': {
         const tx = seen ? player.x : this.lastKnown.x;
         const ty = seen ? player.y : this.lastKnown.y;
-        this._moveToward(tx, ty, this.speed * 1.9, dt, world);
+        // Elites run the thief down faster.
+        this._moveToward(tx, ty, this.speed * (this.elite ? 2.25 : 1.9), dt, world);
         break;
       }
       case 'search': {
