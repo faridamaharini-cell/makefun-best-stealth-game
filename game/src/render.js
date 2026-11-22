@@ -6,16 +6,16 @@ import { TILE, COLS, ROWS, WORLD_W, WORLD_H } from './levels.js';
 import { CONE_RANGE, CONE_HALF_ANGLE } from './guard.js';
 
 const CONE_FILL = {
-  gold: 'rgba(255, 205, 90, 0.20)',
-  orange: 'rgba(255, 140, 40, 0.30)',
-  red: 'rgba(255, 60, 50, 0.38)',
-  crimson: 'rgba(255, 45, 90, 0.22)',
+  gold: 'rgba(255, 205, 90, 0.32)',
+  orange: 'rgba(255, 140, 40, 0.42)',
+  red: 'rgba(255, 60, 50, 0.50)',
+  crimson: 'rgba(255, 45, 90, 0.34)',
 };
 const CONE_EDGE = {
-  gold: 'rgba(255, 205, 90, 0.55)',
-  orange: 'rgba(255, 140, 40, 0.7)',
-  red: 'rgba(255, 60, 50, 0.85)',
-  crimson: 'rgba(255, 45, 90, 0.7)',
+  gold: 'rgba(255, 215, 110, 0.75)',
+  orange: 'rgba(255, 150, 50, 0.85)',
+  red: 'rgba(255, 70, 60, 0.95)',
+  crimson: 'rgba(255, 60, 100, 0.85)',
 };
 
 export function createRenderer(canvas) {
@@ -55,12 +55,18 @@ export function createRenderer(canvas) {
 
   function drawLantern(l, t) {
     if (l.doused) {
-      // Snuffed lantern: no light pool, dark cold body, a wisp of smoke.
-      const g = ctx.createRadialGradient(l.x, l.y, 4, l.x, l.y, l.r);
-      g.addColorStop(0, 'rgba(40, 50, 90, 0.30)');
-      g.addColorStop(1, 'rgba(40, 50, 90, 0)');
-      ctx.fillStyle = g;
+      // Snuffed lantern: a teal DARK ZONE the eye can read — safe shadow.
+      const zone = ctx.createRadialGradient(l.x, l.y, 4, l.x, l.y, l.r);
+      zone.addColorStop(0, 'rgba(30, 110, 130, 0.30)');
+      zone.addColorStop(0.7, 'rgba(30, 110, 130, 0.16)');
+      zone.addColorStop(1, 'rgba(30, 110, 130, 0)');
+      ctx.fillStyle = zone;
       ctx.beginPath(); ctx.arc(l.x, l.y, l.r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(120, 220, 230, 0.45)';
+      ctx.setLineDash([8, 6]);
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(l.x, l.y, l.r - 2, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
       ctx.fillStyle = '#2a1a2e';
       ctx.fillRect(l.x - 1.5, l.y - 2, 3, 22);
       ctx.fillStyle = '#3a2a30';
@@ -91,8 +97,8 @@ export function createRenderer(canvas) {
     }
     const flick = 0.85 + Math.sin(t * 5 + l.x) * 0.08 + Math.sin(t * 11 + l.y) * 0.05;
     const grad = ctx.createRadialGradient(l.x, l.y, 4, l.x, l.y, l.r);
-    grad.addColorStop(0, `rgba(255, 190, 90, ${0.34 * flick})`);
-    grad.addColorStop(0.55, `rgba(255, 160, 60, ${0.14 * flick})`);
+    grad.addColorStop(0, `rgba(255, 195, 95, ${0.52 * flick})`);
+    grad.addColorStop(0.55, `rgba(255, 165, 65, ${0.24 * flick})`);
     grad.addColorStop(1, 'rgba(255, 150, 50, 0)');
     ctx.fillStyle = grad;
     ctx.beginPath(); ctx.arc(l.x, l.y, l.r, 0, Math.PI * 2); ctx.fill();
@@ -109,17 +115,20 @@ export function createRenderer(canvas) {
   }
 
   function drawGuard(g, t) {
-    // Vermilion robe, dark belt, pale face, helmet crest.
-    // ELITE guards wear crimson with a gold crest and a red plume.
-    const robe = g.elite ? '#a31226' : '#c22e1e';
-    const belt = g.elite ? '#4a0510' : '#7d1a10';
+    // Vermilion robe, dark belt, pale face, helmet crest — outlined in white
+    // so guards read clearly against the floor. ELITE guards wear crimson
+    // with a gold crest and a red plume.
+    const robe = g.elite ? '#d41a38' : '#ef4a2e';
+    const belt = g.elite ? '#5a0612' : '#8a1c10';
     ctx.save();
     ctx.translate(g.x, g.y);
     ctx.rotate(g.dir);
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.beginPath(); ctx.ellipse(0, 4, 15, 10, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 245, 220, 0.85)';
+    ctx.lineWidth = 2;
     ctx.fillStyle = robe;
-    ctx.beginPath(); ctx.ellipse(0, 0, 14, 11, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, 0, 14, 11, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.fillStyle = belt;
     ctx.fillRect(-4, -8, 8, 16);
     ctx.fillStyle = '#f2d8a0';
@@ -155,14 +164,26 @@ export function createRenderer(canvas) {
     ctx.globalAlpha = p.hidden ? 0.55 : 1;
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.beginPath(); ctx.ellipse(0, 5, 13, 8, 0, 0, Math.PI * 2); ctx.fill();
-    // Indigo hooded cloak.
-    ctx.fillStyle = '#2b3a8f';
+    // The thief's own lantern glow: a warm halo so the player pops off the
+    // floor, plus a bright indigo cloak with a gold rim.
+    const halo = ctx.createRadialGradient(0, 0, 2, 0, 0, 30);
+    halo.addColorStop(0, 'rgba(255, 215, 120, 0.30)');
+    halo.addColorStop(1, 'rgba(255, 215, 120, 0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#4158d8';
     ctx.beginPath(); ctx.ellipse(0, 0, 13, 11, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#1d2766';
+    ctx.strokeStyle = '#ffd76a';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(0, 0, 13, 11, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#2a3a9e';
     ctx.beginPath(); ctx.moveTo(-6, -8); ctx.lineTo(0, -16); ctx.lineTo(6, -8); ctx.closePath(); ctx.fill();
     // Face + gold trim.
-    ctx.fillStyle = '#f2d8a0';
+    ctx.fillStyle = '#ffe9b0';
     ctx.beginPath(); ctx.arc(Math.cos(p.dir) * 5, Math.sin(p.dir) * 5, 5.5, 0, Math.PI * 2); ctx.fill();
+    // Tiny carried lantern: a gold dot on the thief's leading side.
+    ctx.fillStyle = '#ffd76a';
+    ctx.beginPath(); ctx.arc(Math.cos(p.dir) * 15, Math.sin(p.dir) * 15, 3.5, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = '#ffd76a';
     ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.arc(0, 0, 13, p.dir - 1.2, p.dir + 1.2); ctx.stroke();
@@ -210,9 +231,9 @@ export function createRenderer(canvas) {
     const pulse = 0.6 + Math.sin(t * 3) * 0.25;
     // EXIT BEACON: a tall pillar of gold light rising from the shrine to the
     // top of the screen, visible across the whole level.
-    const beamW = open ? 44 : 30;
+    const beamW = open ? 48 : 32;
     const beamGrad = ctx.createLinearGradient(exit.x - beamW, 0, exit.x + beamW, 0);
-    const beamA = open ? 0.34 * pulse + 0.12 : 0.16;
+    const beamA = open ? 0.5 * pulse + 0.18 : 0.26;
     beamGrad.addColorStop(0, 'rgba(255, 215, 106, 0)');
     beamGrad.addColorStop(0.5, `rgba(255, 215, 106, ${beamA})`);
     beamGrad.addColorStop(1, 'rgba(255, 215, 106, 0)');
@@ -267,28 +288,41 @@ export function createRenderer(canvas) {
   }
 
   function drawWorld(world, t) {
-    // Night floor: indigo stone with a subtle checker and scattered petals.
-    ctx.fillStyle = '#12142e';
+    // Bright festival floor: warm stone tiles with a clear checker, grout
+    // lines and gold speckles, so the level reads at a glance even shrunk.
+    ctx.fillStyle = '#2b3060';
     ctx.fillRect(0, 0, WORLD_W, WORLD_H);
     for (let ty = 0; ty < ROWS; ty++) for (let tx = 0; tx < COLS; tx++) {
       if ((tx + ty) % 2 === 0) {
-        ctx.fillStyle = 'rgba(255,255,255,0.02)';
+        ctx.fillStyle = 'rgba(255, 235, 190, 0.055)';
         ctx.fillRect(tx * TILE, ty * TILE, TILE, TILE);
       }
+      // Deterministic gold speckle per tile for stone texture.
+      const h = ((tx * 73 + ty * 149) % 7);
+      if (h === 0) {
+        ctx.fillStyle = 'rgba(255, 220, 150, 0.10)';
+        ctx.fillRect(tx * TILE + 9, ty * TILE + 11, 3, 3);
+        ctx.fillRect(tx * TILE + 26, ty * TILE + 27, 2, 2);
+      } else if (h === 3) {
+        ctx.fillStyle = 'rgba(140, 200, 255, 0.07)';
+        ctx.fillRect(tx * TILE + 22, ty * TILE + 8, 3, 3);
+      }
     }
-    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    ctx.strokeStyle = 'rgba(255, 240, 200, 0.10)';
     ctx.lineWidth = 1;
     for (let x = 0; x <= COLS; x++) { ctx.beginPath(); ctx.moveTo(x * TILE, 0); ctx.lineTo(x * TILE, WORLD_H); ctx.stroke(); }
     for (let y = 0; y <= ROWS; y++) { ctx.beginPath(); ctx.moveTo(0, y * TILE); ctx.lineTo(WORLD_W, y * TILE); ctx.stroke(); }
 
     const def = world.def;
-    // Walls.
+    // Walls: pale festival blue with a warm gold cap, so rooms read as rooms.
     for (const w of def.walls) {
-      ctx.fillStyle = '#23264a';
+      ctx.fillStyle = '#4a5094';
       ctx.fillRect(w.x * TILE, w.y * TILE, w.w * TILE, w.h * TILE);
-      ctx.fillStyle = '#31356b';
+      ctx.fillStyle = '#6a70b8';
       ctx.fillRect(w.x * TILE, w.y * TILE, w.w * TILE, 5);
-      ctx.strokeStyle = '#10122a';
+      ctx.fillStyle = '#c9a44a';
+      ctx.fillRect(w.x * TILE, w.y * TILE, w.w * TILE, 2);
+      ctx.strokeStyle = '#1c1f4a';
       ctx.strokeRect(w.x * TILE + 1, w.y * TILE + 1, w.w * TILE - 2, w.h * TILE - 2);
     }
     // Stalls: striped awnings over a counter.
@@ -319,11 +353,11 @@ export function createRenderer(canvas) {
     for (const b of def.bushes) {
       const cx = (b.x + 0.5) * TILE, cy = (b.y + 0.5) * TILE;
       const g = ctx.createRadialGradient(cx, cy, 4, cx, cy, 30);
-      g.addColorStop(0, 'rgba(60, 180, 110, 0.30)');
-      g.addColorStop(1, 'rgba(60, 180, 110, 0)');
+      g.addColorStop(0, 'rgba(70, 210, 130, 0.45)');
+      g.addColorStop(1, 'rgba(70, 210, 130, 0)');
       ctx.fillStyle = g;
       ctx.beginPath(); ctx.arc(cx, cy, 30, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#1e6b3a';
+      ctx.fillStyle = '#2a8a4e';
       for (const [ox, oy, r] of [[-8, 4, 11], [6, -6, 12], [8, 7, 10], [-4, -9, 9]]) {
         ctx.beginPath(); ctx.arc(cx + ox, cy + oy, r, 0, Math.PI * 2); ctx.fill();
       }
@@ -378,10 +412,11 @@ export function createRenderer(canvas) {
       ctx.fillStyle = e.gold ? `rgba(255, 210, 110, ${a})` : `rgba(140, 230, 160, ${a * 0.8})`;
       ctx.beginPath(); ctx.arc(x < 0 ? x + WORLD_W : x, y < 0 ? y + WORLD_H : y, e.r, 0, Math.PI * 2); ctx.fill();
     }
-    // Darkness vignette: the night presses in at the edges.
+    // Light vignette only: the night presses in gently at the edges, the
+    // festival floor stays readable.
     const vg = ctx.createRadialGradient(WORLD_W / 2, WORLD_H / 2, WORLD_H * 0.42, WORLD_W / 2, WORLD_H / 2, WORLD_H * 0.95);
     vg.addColorStop(0, 'rgba(6, 8, 24, 0)');
-    vg.addColorStop(1, 'rgba(6, 8, 24, 0.5)');
+    vg.addColorStop(1, 'rgba(6, 8, 24, 0.28)');
     ctx.fillStyle = vg;
     ctx.fillRect(0, 0, WORLD_W, WORLD_H);
   }

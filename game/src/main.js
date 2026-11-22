@@ -50,6 +50,7 @@ function beginPlay() {
   game.state = 'playing';
   ui.hideScreens();
   audio.ensure();
+  audio.startAmbientDrone(); // quiet festival-night bed under the whole level
 }
 
 function caught() {
@@ -84,6 +85,12 @@ function handleEvents(events) {
     }
     if (ev.type === 'noise') {
       for (const g of game.guards) g.hearNoise(ev.x, ev.y, ev.radius);
+    } else if (ev.type === 'guard-step') {
+      // Stereo footstep: pan by the guard's horizontal offset from the thief,
+      // volume by distance — footsteps that tell you where a guard is.
+      const dx = ev.guard.x - game.player.x;
+      const dist = Math.hypot(dx, ev.guard.y - game.player.y);
+      audio.guardFootstep(dist, Math.max(-1, Math.min(1, dx / 500)));
     } else if (ev.type === 'coin-land') {
       audio.coinLand();
       game.coins.push({ x: ev.x, y: ev.y, t: game.time });
@@ -148,18 +155,24 @@ function applyScene(scene) {
   const p = game.player;
   const w = game.world;
   if (scene === 'cover') {
-    // V2 cover: thief crouched by a crate with all 3 charms, the shrine OPEN
+    // V3 cover: thief crouched by a crate with all 3 charms, the shrine OPEN
     // and its gold EXIT BEACON rising in-frame — level, cones, cover, exit.
+    // A landed coin ping glints beside the thief: a distraction just thrown.
     p.x = 25 * 40 + 20; p.y = 13 * 40 + 20; p.crouched = true;
     p.charms = 3; w.charms.forEach((c) => { c.taken = true; }); w.exit.open = true;
+    game.coins.push({ x: 23 * 40 + 20, y: 11 * 40 + 20, t: game.time });
     game.guards[0].x = 21 * 40 + 20; game.guards[0].y = 11 * 40 + 20; game.guards[0].dir = Math.PI / 4;
     game.guards[1].x = 22 * 40 + 20; game.guards[1].y = 7 * 40 + 20; game.guards[1].dir = Math.PI / 2;
     game.guards[2].x = 27 * 40 + 20; game.guards[2].y = 10 * 40 + 20; game.guards[2].dir = -Math.PI / 2;
   } else if (scene === 'alarm') {
-    // A guard has spotted the thief and chases; the thief slips toward shadow.
-    p.x = 12 * 40 + 20; p.y = 7 * 40 + 20; p.dir = Math.PI;
+    // V3 alarm: an ELITE-speed chase past a DOUSED lantern — its teal dark
+    // zone and smoke wisp sit between thief and guard, a second guard
+    // suspicious behind. The thief runs for the shadow, not the light.
+    p.x = 11 * 40 + 20; p.y = 12 * 40 + 20; p.dir = Math.PI;
+    w.lanterns[5].doused = true; // lantern at (9,12), smoke right in-frame
+    p.oil = 1; // one oil spent dousing it
     const g = game.guards[0];
-    g.x = 9 * 40 + 20; g.y = 7 * 40 + 20; g.dir = 0;
+    g.x = 7 * 40 + 20; g.y = 12 * 40 + 20; g.dir = 0;
     g.state = 'chase'; g.suspicion = 0.92; g.lastKnown = { x: p.x, y: p.y };
     game.guards[1].x = 22 * 40 + 20; game.guards[1].y = 4 * 40 + 20; game.guards[1].dir = Math.PI / 2;
     game.guards[1].state = 'suspicious'; game.guards[1].suspicion = 0.5;

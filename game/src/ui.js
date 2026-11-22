@@ -4,7 +4,7 @@
 export function createUI() {
   const $ = (id) => document.getElementById(id);
   const el = {
-    hud: $('hud'), levelName: $('hud-level'), charms: $('hud-charms'), coins: $('hud-coins'), oil: $('hud-oil'),
+    hud: $('hud'), levelName: $('hud-level'), charms: $('hud-charms'), objective: $('hud-objective'), coins: $('hud-coins'), oil: $('hud-oil'),
     eyeFill: $('eye-fill'), eyeLabel: $('eye-label'), alert: $('hud-alert'), timer: $('hud-timer'),
     hint: $('hud-hint'),
     title: $('screen-title'), intro: $('screen-intro'), win: $('screen-win'), caught: $('screen-caught'),
@@ -44,6 +44,11 @@ export function createUI() {
       const { player, guards, levelIndex, levelTime, detection } = state;
       el.levelName.textContent = state.levelName;
       el.charms.textContent = `◆ ${player.charms}/3`;
+      // Objective flow, always visible: steal 3 charms, then the shrine opens.
+      el.objective.textContent = state.world.exit.open
+        ? '⬆ SHRINE OPEN — run to the EXIT!'
+        : `Steal ◆ ${player.charms}/3 → then reach the Shrine`;
+      el.objective.style.color = state.world.exit.open ? '#7ee787' : '#ffd76a';
       el.coins.textContent = `◉ ${player.coins}`;
       el.oil.textContent = `🕯 ${player.oil}`;
       el.eyeFill.style.width = `${Math.round(detection * 100)}%`;

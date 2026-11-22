@@ -31,6 +31,8 @@ export class Guard {
     this.lookDir = 0;
     this.investigate = null; // {x, y} point to check out (noise / coin)
     this.alerted = false; // rose to chase at least once since last decay
+    this.stepAcc = 0; // distance walked since the last audible footstep
+    this._stepped = false; // set when a footstep should sound this frame
   }
 
   get coneColor() {
@@ -70,6 +72,9 @@ export class Guard {
     const ny = this.y + (dy / d) * step;
     const fixed = world.collide(nx, ny, 13);
     this.x = fixed.x; this.y = fixed.y;
+    // Every ~36px walked is one audible footstep (faster guards step more).
+    this.stepAcc += step;
+    if (this.stepAcc > 36) { this.stepAcc = 0; this._stepped = true; }
     return d <= step + 1;
   }
 
@@ -176,6 +181,9 @@ export class Guard {
     }
     // Fully spotted at close range is also a catch.
     if (this.suspicion >= 1) events.push('caught');
+    // Footstep sound event: the caller pans it by the guard's position
+    // relative to the thief, so footsteps tell you where a guard is.
+    if (this._stepped) { events.push({ type: 'guard-step', guard: this }); this._stepped = false; }
   }
 }
 
