@@ -30,6 +30,8 @@ const game = {
   levelName: '',
   time: 0, // global render clock
   frozen: false, // staged ?scene= states: render but never simulate, so the shot stays exact
+  annotations: [], // staged callout labels, drawn by the renderer
+  stats: null, // run stats for the win screen: spotted, close calls, route…
 };
 
 function startLevel(index) {
@@ -42,6 +44,13 @@ function startLevel(index) {
   game.levelTime = 0;
   game.detection = 0;
   game.levelName = def.name;
+  game.annotations = [];
+  // Fresh run stats for this level: route recording starts at the thief.
+  game.stats = {
+    spotted: 0, closeCalls: 0, coinsThrown: 0, oilUsed: 0,
+    route: [{ x: game.world.playerStart.x, y: game.world.playerStart.y }],
+    _routeT: 0, _hot: false,
+  };
   game.state = 'intro';
   ui.showIntro(def);
 }
@@ -64,7 +73,9 @@ function levelClear() {
   if (game.levelIndex + 1 >= LEVELS.length) {
     game.state = 'win';
     audio.win();
-    ui.showWin(game.totalTime + game.levelTime, true);
+    ui.showWin(game.totalTime + game.levelTime, true,
+      { ...game.stats, charms: game.player.charms },
+      game.world, game.guards, game.levelName);
   } else {
     game.totalTime += game.levelTime;
     startLevel(game.levelIndex + 1);
@@ -76,10 +87,10 @@ function handleEvents(events) {
     if (typeof ev === 'string') {
       if (ev === 'step') audio.step(false);
       else if (ev === 'step-run') audio.step(true);
-      else if (ev === 'coin-throw') audio.coin();
-      else if (ev === 'douse') audio.douse();
+      else if (ev === 'coin-throw') { audio.coin(); game.stats.coinsThrown++; }
+      else if (ev === 'douse') { audio.douse(); game.stats.oilUsed++; }
       else if (ev === 'suspicious') audio.suspicious();
-      else if (ev === 'alert') audio.alert();
+      else if (ev === 'alert') { audio.alert(); game.stats.spotted++; }
       else if (ev === 'caught') { caught(); return; }
       continue;
     }
@@ -110,6 +121,16 @@ function update(dt) {
   // Global detection meter = the most suspicious guard.
   game.detection = game.guards.reduce((m, g) => Math.max(m, g.suspicion), 0);
   if (game.detection >= 1) { caught(); return; }
+  // Close call: the eye filled past 0.7, then the thief slipped away unseen.
+  if (game.detection > 0.7) game.stats._hot = true;
+  else if (game.stats._hot && game.detection < 0.3) { game.stats.closeCalls++; game.stats._hot = false; }
+  // Record the thief's route for the win screen's route map.
+  game.stats._routeT += dt;
+  if (game.stats._routeT > 0.4) {
+    game.stats._routeT = 0;
+    const r = game.stats.route;
+    if (r.length < 500) r.push({ x: game.player.x, y: game.player.y });
+  }
 
   // Charm pickup.
   for (const c of game.world.charms) {
@@ -141,9 +162,26 @@ function applyScene(scene) {
     game.world.charms.forEach((c) => { c.taken = true; });
     game.world.exit.open = true;
     game.player.x = 16 * 40 + 20; game.player.y = 5 * 40 + 20;
-    game.totalTime = 487;
+    // A full night's run, seeded as the win screen's own stats: the route
+    // winds from the gate to all three charms and out through the shrine.
+    const wps = [[16, 16], [8, 16], [2, 16], [2, 8], [2, 2], [12, 2], [29, 2], [29, 8], [16, 8], [16, 1]];
+    const route = [];
+    for (let i = 0; i < wps.length - 1; i++) {
+      const [x0, y0] = wps[i], [x1, y1] = wps[i + 1];
+      const steps = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) * 40 / 36));
+      for (let s = 0; s < steps; s++) {
+        const t = s / steps;
+        route.push({ x: (x0 + (x1 - x0) * t + 0.5) * 40, y: (y0 + (y1 - y0) * t + 0.5) * 40 });
+      }
+    }
+    route.push({ x: 16.5 * 40, y: 1.5 * 40 });
+    game.stats = {
+      spotted: 0, closeCalls: 1, coinsThrown: 2, oilUsed: 1, charms: 3,
+      route, _routeT: 0, _hot: false,
+    };
+    game.totalTime = 437;
     game.state = 'win';
-    ui.showWin(487, true);
+    ui.showWin(437, true, game.stats, game.world, game.guards, game.levelName);
     ui.update(game);
     return;
   }
@@ -163,7 +201,16 @@ function applyScene(scene) {
     game.coins.push({ x: 23 * 40 + 20, y: 11 * 40 + 20, t: game.time });
     game.guards[0].x = 21 * 40 + 20; game.guards[0].y = 11 * 40 + 20; game.guards[0].dir = Math.PI / 4;
     game.guards[1].x = 22 * 40 + 20; game.guards[1].y = 7 * 40 + 20; game.guards[1].dir = Math.PI / 2;
+    game.guards[1].state = 'suspicious'; game.guards[1].suspicion = 0.45;
+    game.guards[1].say('What was that?', 99);
     game.guards[2].x = 27 * 40 + 20; game.guards[2].y = 10 * 40 + 20; game.guards[2].dir = -Math.PI / 2;
+    game.annotations = [
+      { x: 1020, y: 540, dx: -330, dy: 90, text: 'YOU: crouched where the cone stops' },
+      { x: 900, y: 300, dx: -330, dy: -80, text: 'WARDEN SABLE: cone sweeps the lane' },
+      { x: 940, y: 460, dx: -320, dy: -120, text: 'COIN: thrown to pull a warden away' },
+      { x: 1180, y: 660, dx: -300, dy: -90, text: 'SHRINE OPEN — run to the EXIT!' },
+    ];
+    ui.showFieldNotes(true);
   } else if (scene === 'alarm') {
     // V3 alarm: an ELITE-speed chase past a DOUSED lantern — its teal dark
     // zone and smoke wisp sit between thief and guard, a second guard
@@ -174,11 +221,19 @@ function applyScene(scene) {
     const g = game.guards[0];
     g.x = 7 * 40 + 20; g.y = 12 * 40 + 20; g.dir = 0;
     g.state = 'chase'; g.suspicion = 0.92; g.lastKnown = { x: p.x, y: p.y };
+    g.say('Thief! There!', 99);
     game.guards[1].x = 22 * 40 + 20; game.guards[1].y = 4 * 40 + 20; game.guards[1].dir = Math.PI / 2;
     game.guards[1].state = 'suspicious'; game.guards[1].suspicion = 0.5;
+    game.guards[1].say('What was that?', 99);
     game.detection = 0.92;
     p.charms = 2; w.charms[0].taken = true; w.charms[1].taken = true;
     game.levelTime = 74;
+    game.annotations = [
+      { x: 580, y: 660, dx: 180, dy: -110, text: 'WARDEN FEN: still on patrol' },
+      { x: 380, y: 500, dx: -90, dy: 80, text: 'DOUSED: hidden — detection crawls' },
+      { x: 460, y: 500, dx: 90, dy: -110, text: 'YOU: break line of sight!' },
+      { x: 900, y: 180, dx: -320, dy: 40, text: 'WARDEN SABLE: cone sweeps the market' },
+    ];
   } else if (scene === 'level3') {
     // V2 plaza: 10 guards incl. 2 crimson ELITEs, one lantern DOUSED (dark
     // zone + smoke) beside the thief hidden in a bush, beacon at the top.
@@ -194,10 +249,19 @@ function applyScene(scene) {
     game.guards[8].x = 20 * 40 + 20; game.guards[8].y = 8 * 40 + 20;
     game.guards[8].dir = Math.PI * 0.75; game.guards[8].suspicion = 0.55;
     game.guards[8].state = 'suspicious';
+    game.guards[8].say('What was that?', 99);
+    game.guards[3].say('Coming!', 99);
     game.guards[9].x = 10 * 40 + 20; game.guards[9].y = 13 * 40 + 20;
     game.guards[9].dir = -0.6;
     p.charms = 1; w.charms[0].taken = true;
     game.levelTime = 132;
+    game.annotations = [
+      { x: 660, y: 460, dx: -300, dy: 90, text: 'YOU: hidden in the bush' },
+      { x: 820, y: 340, dx: 120, dy: 40, text: 'ELITE WARDEN VOSS: wider cone, faster chase' },
+      { x: 660, y: 60, dx: 180, dy: 60, text: 'SHRINE: opens once you hold all 3 charms' },
+      { x: 660, y: 380, dx: -330, dy: -70, text: 'OIL: fuel for the douse (Q)' },
+    ];
+    ui.showFieldNotes(true);
   }
   ui.update(game);
 }
@@ -213,6 +277,7 @@ function frame(now) {
     const muted = audio.toggleMute();
     document.getElementById('hud-hint').textContent = muted ? 'Muted (M to unmute)' : '';
   }
+  if (input.wasPressed('h')) ui.toggleFieldNotes();
 
   if (game.state === 'title' && (input.wasPressed('Enter') || input.mouse.down)) {
     startLevel(0);

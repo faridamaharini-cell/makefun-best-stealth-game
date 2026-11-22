@@ -13,6 +13,7 @@ export const ELITE_CONE_HALF_ANGLE = 0.68;
 
 export class Guard {
   constructor(def) {
+    this.name = def.name || 'Warden';
     this.path = def.path;
     this.speed = def.speed;
     this.elite = !!def.elite;
@@ -31,6 +32,8 @@ export class Guard {
     this.lookDir = 0;
     this.investigate = null; // {x, y} point to check out (noise / coin)
     this.alerted = false; // rose to chase at least once since last decay
+    this.bark = ''; // speech-bubble text above the guard ("What was that?")
+    this.barkTime = 0; // seconds the bubble stays up
     this.stepAcc = 0; // distance walked since the last audible footstep
     this._stepped = false; // set when a footstep should sound this frame
   }
@@ -54,11 +57,15 @@ export class Guard {
     return world.hasLineOfSight(this.x, this.y, player.x, player.y);
   }
 
+  // Say a line in a speech bubble for a few seconds.
+  say(text, seconds = 2.2) { this.bark = text; this.barkTime = seconds; }
+
   hearNoise(x, y, radius) {
     const d = Math.hypot(x - this.x, y - this.y);
     if (d > radius + 40) return;
     if (this.state === 'chase') return;
     this.investigate = { x, y };
+    this.say('Coming!', 2.6);
     if (this.state === 'patrol') { this.state = 'suspicious'; this.suspicion = Math.max(this.suspicion, 0.4); }
   }
 
@@ -104,8 +111,17 @@ export class Guard {
 
     if (this.state === 'chase' && !seen && this.suspicion < 0.45) this.state = 'search';
 
-    if (prevState !== 'suspicious' && this.state === 'suspicious') events.push('suspicious');
-    if (prevState !== 'chase' && this.state === 'chase') { events.push('alert'); this.alerted = true; }
+    if (this.barkTime > 0) this.barkTime -= dt;
+    if (this.barkTime <= 0) this.bark = '';
+
+    if (prevState !== 'suspicious' && this.state === 'suspicious') {
+      events.push('suspicious');
+      if (!this.bark) this.say('What was that?', 2.4);
+    }
+    if (prevState !== 'chase' && this.state === 'chase') {
+      events.push('alert'); this.alerted = true;
+      this.say('Thief! There!', 2.6);
+    }
     if (prevState === 'chase' && this.state !== 'chase') events.push('lost');
 
     switch (this.state) {

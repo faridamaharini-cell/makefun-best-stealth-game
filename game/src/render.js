@@ -97,8 +97,8 @@ export function createRenderer(canvas) {
     }
     const flick = 0.85 + Math.sin(t * 5 + l.x) * 0.08 + Math.sin(t * 11 + l.y) * 0.05;
     const grad = ctx.createRadialGradient(l.x, l.y, 4, l.x, l.y, l.r);
-    grad.addColorStop(0, `rgba(255, 195, 95, ${0.52 * flick})`);
-    grad.addColorStop(0.55, `rgba(255, 165, 65, ${0.24 * flick})`);
+    grad.addColorStop(0, `rgba(255, 195, 95, ${0.66 * flick})`);
+    grad.addColorStop(0.55, `rgba(255, 165, 65, ${0.34 * flick})`);
     grad.addColorStop(1, 'rgba(255, 150, 50, 0)');
     ctx.fillStyle = grad;
     ctx.beginPath(); ctx.arc(l.x, l.y, l.r, 0, Math.PI * 2); ctx.fill();
@@ -143,6 +143,41 @@ export function createRenderer(canvas) {
       ctx.font = 'bold 11px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('ELITE', g.x, g.y - 34);
+    }
+    // Named warden: the name tag rides above a guard that has noticed
+    // something, so the alarm always names who spotted you.
+    if (g.state === 'suspicious' || g.state === 'chase' || g.state === 'search') {
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      const label = `WARDEN ${g.name.toUpperCase()}`;
+      const w = ctx.measureText(label).width + 12;
+      ctx.fillStyle = 'rgba(7, 8, 26, 0.88)';
+      ctx.strokeStyle = g.state === 'chase' ? '#ff5040' : '#ffb020';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(g.x - w / 2, g.y - 48, w, 15, 4);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = g.state === 'chase' ? '#ff8080' : '#ffd76a';
+      ctx.fillText(label, g.x, g.y - 37);
+    }
+    // Speech bubble: the guard's bark ("What was that?", "Thief! There!").
+    if (g.bark) {
+      ctx.font = 'bold 13px sans-serif';
+      ctx.textAlign = 'center';
+      const w = ctx.measureText(g.bark).width + 16;
+      const bx = Math.max(w / 2 + 4, Math.min(WORLD_W - w / 2 - 4, g.x + 26));
+      const by = g.y - 78;
+      ctx.fillStyle = '#f2e3c8';
+      ctx.strokeStyle = '#7d1a10';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(bx - w / 2, by - 13, w, 20, 6);
+      ctx.fill(); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(bx - 8, by + 7); ctx.lineTo(bx + 2, by + 7); ctx.lineTo(bx - 4, by + 16);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#3a2418';
+      ctx.fillText(g.bark, bx, by + 2);
     }
     // Suspicion arc above the guard.
     if (g.suspicion > 0.05) {
@@ -288,9 +323,9 @@ export function createRenderer(canvas) {
   }
 
   function drawWorld(world, t) {
-    // Bright festival floor: warm stone tiles with a clear checker, grout
+    // Warm festival floor: amber stone tiles with a clear checker, grout
     // lines and gold speckles, so the level reads at a glance even shrunk.
-    ctx.fillStyle = '#2b3060';
+    ctx.fillStyle = '#353a6e';
     ctx.fillRect(0, 0, WORLD_W, WORLD_H);
     for (let ty = 0; ty < ROWS; ty++) for (let tx = 0; tx < COLS; tx++) {
       if ((tx + ty) % 2 === 0) {
@@ -368,6 +403,41 @@ export function createRenderer(canvas) {
     }
   }
 
+  // Staged callout annotations (set by window.__game.annotations): the game's
+  // own labels that teach the mechanics in frame, Lampblack-style — a leader
+  // line from the thing to a small gold-bordered caption.
+  function drawAnnotations(annotations) {
+    if (!annotations || !annotations.length) return;
+    ctx.save();
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'left';
+    for (const a of annotations) {
+      const w = ctx.measureText(a.text).width + 18;
+      const h = 26;
+      let bx = Math.max(6, Math.min(WORLD_W - w - 6, a.x + (a.dx || 0)));
+      let by = Math.max(6, Math.min(WORLD_H - h - 6, a.y + (a.dy || 0)));
+      const ax = Math.max(4, Math.min(WORLD_W - 4, bx + w / 2));
+      const ay = Math.max(4, Math.min(WORLD_H - 4, by + h / 2));
+      ctx.strokeStyle = 'rgba(255, 215, 106, 0.9)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(ax, ay);
+      ctx.stroke();
+      ctx.fillStyle = '#ffd76a';
+      ctx.beginPath(); ctx.arc(a.x, a.y, 3.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(7, 8, 26, 0.92)';
+      ctx.strokeStyle = '#ffd76a';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, w, h, 4);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#ffe9a8';
+      ctx.fillText(a.text, bx + 9, by + 17);
+    }
+    ctx.restore();
+  }
+
   function draw(state, t) {
     const { world, player, guards, coins } = state;
     ctx.clearRect(0, 0, WORLD_W, WORLD_H);
@@ -379,6 +449,7 @@ export function createRenderer(canvas) {
     drawExit(world.exit, t, player);
     for (const g of guards) drawGuard(g, t);
     drawPlayer(player, t);
+    drawAnnotations(state.annotations);
     // Thrown coin in flight.
     const cp = player.coinPos();
     if (cp) {
@@ -416,7 +487,7 @@ export function createRenderer(canvas) {
     // festival floor stays readable.
     const vg = ctx.createRadialGradient(WORLD_W / 2, WORLD_H / 2, WORLD_H * 0.42, WORLD_W / 2, WORLD_H / 2, WORLD_H * 0.95);
     vg.addColorStop(0, 'rgba(6, 8, 24, 0)');
-    vg.addColorStop(1, 'rgba(6, 8, 24, 0.28)');
+    vg.addColorStop(1, 'rgba(6, 8, 24, 0.20)');
     ctx.fillStyle = vg;
     ctx.fillRect(0, 0, WORLD_W, WORLD_H);
   }

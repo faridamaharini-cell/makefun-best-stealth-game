@@ -14,7 +14,7 @@
     display: flex; align-items: center; justify-content: center;
     min-height: 100vh; overflow: hidden;
   }
-  #wrap { position: relative; width: 1280px; max-width: 100vw; }
+  #wrap { position: relative; width: 1276px; max-width: 100vw; }
   canvas {
     display: block; width: 100%; height: auto;
     background: #12142e;
@@ -23,13 +23,13 @@
   }
   #hud {
     position: absolute; top: 0; left: 0; right: 0;
-    display: flex; align-items: center; gap: 18px;
-    padding: 10px 16px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
     background: linear-gradient(rgba(7, 8, 26, 0.88), rgba(7, 8, 26, 0));
-    font-size: 15px; letter-spacing: 0.5px;
+    font-size: 14px; letter-spacing: 0.5px;
     pointer-events: none; z-index: 5;
   }
-  #hud .title { color: #ffd76a; font-weight: bold; font-size: 17px; }
+  #hud .title { color: #ffd76a; font-weight: bold; font-size: 16px; }
   #hud .stat { color: #f2e3c8; white-space: nowrap; }
   #hud .stat b { color: #7ee787; }
   #eye { display: flex; align-items: center; gap: 6px; }
@@ -39,13 +39,36 @@
   }
   #eye-fill { height: 100%; width: 0%; background: #ffd76a; transition: width 0.12s; }
   #eye-label { font-size: 12px; color: #ffd76a; min-width: 74px; }
-  #hud-alert { font-weight: bold; min-width: 110px; }
+  #hud-alert { font-weight: bold; min-width: 64px; }
   #hud-timer { margin-left: auto; color: #9fb3ff; font-variant-numeric: tabular-nums; }
   #hud-hint {
     position: absolute; bottom: 8px; left: 0; right: 0; text-align: center;
     font-size: 13px; color: rgba(242, 227, 200, 0.75);
     text-shadow: 0 1px 3px #000; pointer-events: none; z-index: 5;
   }
+  #alarm-banner {
+    position: absolute; top: 52px; left: 0; right: 0; text-align: center;
+    pointer-events: none; z-index: 6;
+  }
+  #alarm-banner .alarm-text {
+    display: inline-block; font-size: 30px; font-weight: bold; letter-spacing: 3px;
+    color: #ff5040; text-shadow: 0 0 18px rgba(255, 60, 50, 0.7), 0 2px 0 #000;
+    border-top: 2px solid rgba(255, 80, 64, 0.8); border-bottom: 2px solid rgba(255, 80, 64, 0.8);
+    padding: 4px 22px;
+  }
+  #alarm-banner .alarm-sub {
+    display: block; font-size: 15px; font-style: italic; color: #f2e3c8;
+    text-shadow: 0 1px 3px #000; margin-top: 4px;
+  }
+  #field-notes {
+    position: absolute; left: 14px; top: 62px; width: 302px; z-index: 5;
+    background: rgba(7, 8, 26, 0.88); border: 1px solid #c9a44a;
+    padding: 10px 12px; pointer-events: none;
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+  #field-notes .fn-title { color: #ffd76a; font-weight: bold; font-size: 15px; letter-spacing: 2px; margin-bottom: 6px; }
+  #field-notes .fn-row { font-size: 13px; line-height: 1.55; color: #f2e3c8; white-space: nowrap; }
+  #field-notes .fn-ico { display: inline-block; width: 20px; text-align: center; }
   .screen {
     position: absolute; inset: 0; z-index: 10;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -66,6 +89,40 @@
   .press { margin-top: 10px; font-size: 15px; color: #7ee787; letter-spacing: 2px; animation: blink 1.4s infinite; }
   @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
   .lantern-row { font-size: 30px; letter-spacing: 14px; }
+  .win-grid { display: flex; gap: 30px; align-items: flex-start; text-align: left; max-width: 1160px; }
+  .win-map h2 { font-size: 22px; letter-spacing: 2px; margin-bottom: 2px; }
+  .win-map-sub { font-size: 14px; color: #d8cdb2; font-style: italic; margin-bottom: 10px; }
+  #route-map { display: block; border: 2px solid #c9a44a; background: #0d0e24; }
+  .win-legend { font-size: 12px; color: #9fb3ff; margin-top: 6px; display: flex; gap: 18px; }
+  .win-legend .teal { color: #5fe8c0; }
+  .win-side { width: 380px; flex-shrink: 0; }
+  .win-done { font-size: 13px; letter-spacing: 2px; color: #9fb3ff; }
+  .win-side h2 { font-size: 34px; letter-spacing: 3px; margin: 2px 0 10px; }
+  #win-stamp {
+    display: inline-block; font-size: 44px; font-weight: bold; letter-spacing: 6px;
+    color: #7ee787; border: 4px solid #7ee787; border-radius: 6px;
+    padding: 4px 22px; transform: rotate(-4deg); margin: 6px 0 12px;
+    text-shadow: 0 0 18px rgba(126, 231, 135, 0.5);
+  }
+  #win-stamp.amber { color: #ffb020; border-color: #ffb020; text-shadow: 0 0 18px rgba(255, 176, 32, 0.5); }
+  #win-stamp.red { color: #ff5040; border-color: #ff5040; text-shadow: 0 0 18px rgba(255, 80, 64, 0.5); }
+  .win-stats { font-size: 16px; line-height: 1.9; margin: 4px 0 10px; }
+  .win-stats .row { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255, 215, 106, 0.18); }
+  .win-stats .row b { color: #ffd76a; font-variant-numeric: tabular-nums; }
+  .win-medals { display: flex; gap: 16px; margin: 10px 0 16px; }
+  .win-medals .medal { text-align: center; font-size: 12px; color: #d8cdb2; width: 100px; }
+  .win-medals .medal .dot {
+    display: block; width: 44px; height: 44px; line-height: 44px; margin: 0 auto 4px;
+    border-radius: 50%; background: #c9a44a; color: #1c1c28; font-size: 22px; font-weight: bold;
+  }
+  .win-medals .medal.off .dot { background: #3a3a52; color: #777; }
+  .win-medals .medal.off { color: #777; }
+  .win-btns { display: flex; flex-direction: column; gap: 8px; }
+  .win-btn {
+    display: block; text-align: center; font-size: 16px; letter-spacing: 2px;
+    border: 2px solid #c9a44a; color: #f2e3c8; padding: 9px 0;
+  }
+  .win-btn.gold { background: #c9a44a; color: #1c1c28; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -79,11 +136,26 @@
     <span class="stat" id="hud-objective" style="color:#ffd76a">Steal ◆ 3 → Shrine</span>
     <span class="stat">Coins <b id="hud-coins">◉ 3</b></span>
     <span class="stat">Oil <b id="hud-oil">🕯 2</b></span>
-    <span id="eye"><span>👁</span><span id="eye-track"><span id="eye-fill" style="display:block"></span></span><span id="eye-label">UNSEEN</span></span>
+    <span id="eye"><span>👁</span><span id="eye-track"><span id="eye-fill" style="display:block"></span></span><span id="eye-label">SHADOW</span></span>
     <span id="hud-alert">— CALM</span>
     <span id="hud-timer">00:00</span>
   </div>
   <div id="hud-hint"></div>
+  <div id="alarm-banner" class="hidden">
+    <span class="alarm-text" id="alarm-text"></span>
+    <span class="alarm-sub">Run. Break their line of sight. Hide.</span>
+  </div>
+  <div id="field-notes" class="hidden">
+    <div class="fn-title">FIELD NOTES</div>
+    <div class="fn-row"><span class="fn-ico">👁</span> Warden + vision cone (what they see)</div>
+    <div class="fn-row"><span class="fn-ico">▨</span> Blind spot behind cover: safe</div>
+    <div class="fn-row"><span class="fn-ico">🏮</span> Lantern light: seen from afar</div>
+    <div class="fn-row"><span class="fn-ico">🌫</span> Doused lantern (Q): hidden, detection crawls</div>
+    <div class="fn-row"><span class="fn-ico">🕯</span> Oil: fuel for dousing</div>
+    <div class="fn-row"><span class="fn-ico">♦</span> ELITE warden (crimson): wider cone, faster chase</div>
+    <div class="fn-row"><span class="fn-ico">◉</span> Coin (F): lures a warden to the ping</div>
+    <div class="fn-row"><span class="fn-ico">⛩</span> Shrine: opens once you hold all 3 charms</div>
+  </div>
 
   <div class="screen" id="screen-title">
     <div class="lantern-row">🏮 🏮 🏮</div>
@@ -95,7 +167,7 @@
     <div class="keys">
       <b>WASD / Arrows</b> move (running is loud) &nbsp;·&nbsp; <b>Shift</b> sneak quietly<br>
       <b>F / Space</b> throw a coin to distract a guard &nbsp;·&nbsp; <b>Q</b> douse a lantern (2 oil)<br>
-      <b>E</b> crouch / hide in bushes &nbsp;·&nbsp; <b>M</b> mute &nbsp;·&nbsp; <b>R</b> retry after being caught
+      <b>E</b> crouch / hide in bushes &nbsp;·&nbsp; <b>H</b> field notes &nbsp;·&nbsp; <b>M</b> mute &nbsp;·&nbsp; <b>R</b> retry after being caught
     </div>
     <div class="press">PRESS ENTER OR CLICK TO BEGIN</div>
   </div>
@@ -107,11 +179,27 @@
   </div>
 
   <div class="screen hidden" id="screen-win">
-    <div class="lantern-row">✦ 🏮 ✦</div>
-    <h2>THE FESTIVAL NEVER SAW YOU</h2>
-    <div class="big" id="win-time">00:00</div>
-    <p id="win-sub"></p>
-    <div class="press">PRESS R TO STEAL AGAIN</div>
+    <div class="win-grid">
+      <div class="win-map">
+        <h2 id="win-job">THE ROUTE YOU TOOK</h2>
+        <p class="win-map-sub" id="win-route-sub">Every step of the way, drawn.</p>
+        <canvas id="route-map" width="560" height="300"></canvas>
+        <div class="win-legend"><span><span class="teal">━ ━</span> your route</span><span>◆ where the wardens stood at the end</span></div>
+      </div>
+      <div class="win-side">
+        <div class="win-done" id="win-done">ALL JOBS DONE</div>
+        <h2>CLEAN GETAWAY</h2>
+        <div id="win-stamp">GHOST</div>
+        <p id="win-sub" class="sub"></p>
+        <div class="win-stats" id="win-stats"></div>
+        <div class="win-medals" id="win-medals"></div>
+        <div class="win-btns">
+          <span class="win-btn gold">NEXT JOB — ENTER</span>
+          <span class="win-btn">REPLAY — R</span>
+          <span class="win-btn">JOB BOARD</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="screen hidden" id="screen-caught">
